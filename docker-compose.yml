@@ -1,0 +1,68 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fitmate-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-fitmate}
+      POSTGRES_USER: ${POSTGRES_USER:-fitmate}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-fitmate}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-fitmate} -d ${POSTGRES_DB:-fitmate}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: fitmate-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+    container_name: fitmate-backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-fitmate}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-fitmate}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-fitmate}
+      SPRING_REDIS_HOST: redis
+      SPRING_REDIS_PORT: 6379
+      FITMATE_JWT_SECRET: ${FITMATE_JWT_SECRET:-change-me-in-prod-please-use-a-long-random-secret-value}
+      FITMATE_CORS_ALLOWED_ORIGINS: ${FITMATE_CORS_ALLOWED_ORIGINS:-http://localhost:8081,http://localhost:5173}
+      FITMATE_SEED_ENABLED: ${FITMATE_SEED_ENABLED:-true}
+      JPA_DDL_AUTO: update
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health | grep -q UP || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 40s
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: fitmate-frontend
+    depends_on:
+      - backend
+    ports:
+      - "${FRONTEND_PORT:-8081}:80"
+
+volumes:
+  pgdata:

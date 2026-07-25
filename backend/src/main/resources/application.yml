@@ -1,0 +1,59 @@
+server:
+  port: ${SERVER_PORT:8080}
+
+spring:
+  application:
+    name: fitmate-backend
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/fitmate}
+    username: ${SPRING_DATASOURCE_USERNAME:fitmate}
+    password: ${SPRING_DATASOURCE_PASSWORD:fitmate}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+    show-sql: false
+
+  data:
+    redis:
+      host: ${SPRING_REDIS_HOST:localhost}
+      port: ${SPRING_REDIS_PORT:6379}
+
+  cache:
+    type: redis
+
+fitmate:
+  jwt:
+    # Override in production. Must be at least 32 bytes for HS256.
+    secret: ${FITMATE_JWT_SECRET:7fK9mQ2xV8pL4zN6rT1yH5wC3sA8dE0gJ6uB9nX2kM7qR4vP}
+    expiration-ms: ${FITMATE_JWT_EXPIRATION_MS:86400000}
+  cors:
+    allowed-origins: ${FITMATE_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:3000}
+  seed:
+    enabled: ${FITMATE_SEED_ENABLED:true}
+  oauth2:
+    # Social login is OFF by default so app boots without
+    # any OAuth credentials. Set to true AND provide client id/secret to enable
+    enabled: ${FITMATE_OAUTH2_ENABLED:false}
+    # Where the backend sends the browser (with a ?token=....) after social login
+    redirect-uri: ${FITMATE_OAUTH2_REDIRECT_URI:http://localhost:5173/oauth/callback}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
